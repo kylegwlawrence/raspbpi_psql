@@ -79,7 +79,64 @@ def drop_db(db_name, conn_string):
             print(f'Database {db_name} has been dropped')
         conn.close()
 
+def create_schema(new_schema_name, conn_string):
+
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
+    curs = conn.cursor()
+    # sql to check if the schema already exists
+    is_exist = f"SELECT nspname FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER('{new_schema_name}')"
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(is_exist)
+            exist_result = curs.fetchall()
+    if not exist_result:
+        # create the schema
+        print(f'{new_schema_name} does not exist, creating it...')
+        # sql to create the schema
+        sql = f"CREATE SCHEMA {new_schema_name};"
+        conn = psycopg2.connect(conn_string)
+        conn.autocommit = True
+        curs = conn.cursor()
+        curs.execute(sql)
+        conn.commit()
+
+        # verify it exists
+        curs.execute(is_exist)
+        exist_result = curs.fetchall()
+        if exist_result[0][0]==new_schema_name:
+            print(f'Schema {new_schema_name} has been created')
+        conn.close()
+    else:
+        print(f'Schema {new_schema_name} already exists...')
+
+def drop_schema(schema_name, conn_string):
+    """
+    Drops an existing schema on the postgres server
+    """
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
+    # sql to check if the schema already exists
+    is_exist = f"SELECT nspname FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER('{schema_name}')"
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(is_exist)
+            exist_result = curs.fetchall()
+    if not exist_result:
+        print(f'Schema {schema_name} cannot be droppped, it does not exist...')
+    else:
+        sql_drop = f"DROP SCHEMA {schema_name};"
+        curs = conn.cursor()
+        curs.execute(sql_drop)
+        conn.commit()
+        # verify it does not exist
+        curs.execute(is_exist)
+        exist_result = curs.fetchall()
+        if not exist_result:
+            print(f'Schema {schema_name} has been dropped')
+        conn.close()
+
 if __name__ == '__main__':
     conn = conn_string('app/server_params.json')
-    create_db('test_db', conn)
-    drop_db('test_db', conn)
+    create_schema('test_schema', conn)
+    drop_schema('test_schema', conn)
