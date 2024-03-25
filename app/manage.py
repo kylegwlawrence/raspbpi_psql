@@ -136,7 +136,33 @@ def drop_schema(schema_name, conn_string):
             print(f'Schema {schema_name} has been dropped')
         conn.close()
 
+def create_table(schema_name, new_table_name, conn_string):
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
+    curs = conn.cursor()
+    # sql to create the table
+    sql = f"CREATE TABLE IF NOT EXISTS {schema_name}.{new_table_name} ();"
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
+    curs = conn.cursor()
+    curs.execute(sql)
+    conn.commit()
+    is_exist = f"""SELECT table_name
+    FROM
+        information_schema.tables
+    WHERE
+        table_name = '{new_table_name}'
+    AND
+        table_schema = '{schema_name}';"""
+    # verify it exists
+    curs.execute(is_exist)
+    exist_result = curs.fetchall()
+    if exist_result[0][0]==new_table_name:
+        print(f'TABLE {schema_name}.{new_table_name} has been created')
+    conn.close()
+
 if __name__ == '__main__':
     conn = conn_string('app/server_params.json')
     create_schema('test_schema', conn)
-    drop_schema('test_schema', conn)
+    #drop_schema('test_schema', conn)
+    create_table('test_schema','test_table', conn)
