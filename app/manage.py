@@ -139,14 +139,6 @@ def drop_schema(schema_name, conn_string):
 def create_table(schema_name, new_table_name, conn_string):
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
-    curs = conn.cursor()
-    # sql to create the table
-    sql = f"CREATE TABLE IF NOT EXISTS {schema_name}.{new_table_name} ();"
-    conn = psycopg2.connect(conn_string)
-    conn.autocommit = True
-    curs = conn.cursor()
-    curs.execute(sql)
-    conn.commit()
     is_exist = f"""SELECT table_name
     FROM
         information_schema.tables
@@ -154,15 +146,62 @@ def create_table(schema_name, new_table_name, conn_string):
         table_name = '{new_table_name}'
     AND
         table_schema = '{schema_name}';"""
-    # verify it exists
-    curs.execute(is_exist)
-    exist_result = curs.fetchall()
-    if exist_result[0][0]==new_table_name:
-        print(f'TABLE {schema_name}.{new_table_name} has been created')
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(is_exist)
+            exist_result = curs.fetchall()
+    if not exist_result:
+        # sql to create the table
+        sql = f"CREATE TABLE IF NOT EXISTS {schema_name}.{new_table_name} ();"
+        conn = psycopg2.connect(conn_string)
+        conn.autocommit = True
+        curs = conn.cursor()
+        curs.execute(sql)
+        conn.commit()
+        # verify it exists
+        curs.execute(is_exist)
+        exist_result = curs.fetchall()
+        if exist_result[0][0]==new_table_name:
+            print(f'TABLE {schema_name}.{new_table_name} has been created')
+    else:
+        print(f'Table {schema_name}.{new_table_name} already exists...')
     conn.close()
+
+def drop_table(schema_name, table_name, conn_string):
+    """
+    Drops an existing table on the postgres server
+    """
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
+    # sql to check if the schema already exists
+    is_exist = f"""SELECT table_name
+    FROM
+        information_schema.tables
+    WHERE
+        table_name = '{table_name}'
+    AND
+        table_schema = '{schema_name}';"""
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(is_exist)
+            exist_result = curs.fetchall()
+    if not exist_result:
+        print(f'Table {schema_name}.{table_name} cannot be droppped, it does not exist...')
+    else:
+        sql_drop = f"DROP TABLE {schema_name}.{table_name} CASCADE;"
+        curs = conn.cursor()
+        curs.execute(sql_drop)
+        conn.commit()
+        # verify it does not exist
+        curs.execute(is_exist)
+        exist_result = curs.fetchall()
+        if not exist_result:
+            print(f'Table {schema_name}.{table_name} has been dropped')
+        conn.close()
 
 if __name__ == '__main__':
     conn = conn_string('app/server_params.json')
     create_schema('test_schema', conn)
     #drop_schema('test_schema', conn)
     create_table('test_schema','test_table', conn)
+    drop_table('test_schema', 'test_table', conn)
