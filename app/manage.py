@@ -4,23 +4,27 @@
 import psycopg2
 import json
 
-def conn_string(params_json):
+def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
     """
     Connects to the raspberrypi3.local postgres server
 
         Parameters:
-            params_json (json): json file with the connection parameters
+            json_file (json): json file with the connection parameters
+            psycopg2 (bool): if True returns a string to use in psycoopg2, else returns a string to use in sqlalchemy
         
         Returns:
             connection_string (str): the connection string to pass to the cursor
     """
     # read in json
-    with open(params_json) as f:
+    with open(json_file) as f:
         params = json.load(f)
-    connection_string = f"""host='{params["host"]}' port='{params["port"]}' dbname='{params["db"]}' user='{params["user"]}' password='{params["pw"]}'"""
+    if psycopg2:
+        connection_string = f"""host='{params["host"]}' port='{params["port"]}' dbname='{params["db"]}' user='{params["user"]}' password='{params["pw"]}'"""
+    else:
+        connection_string = f"postgresql://{params['user']}:{params['pw']}@{params['host']}:{params['port']}/{params['db']}"
     return connection_string
 
-def create_db(new_db_name, conn_string):
+def create_db(new_db_name, conn_string) -> None:
     """
     Creates a new database on the postgres server
     """
@@ -53,7 +57,7 @@ def create_db(new_db_name, conn_string):
     else:
         print(f'Database {new_db_name} already exists...')
 
-def drop_db(db_name, conn_string):
+def drop_db(db_name, conn_string) -> None:
     """
     Drops an existing database on the postgres server
     """
@@ -79,7 +83,7 @@ def drop_db(db_name, conn_string):
             print(f'Database {db_name} has been dropped')
         conn.close()
 
-def create_schema(new_schema_name, conn_string):
+def create_schema(new_schema_name, conn_string) -> None:
 
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
@@ -110,7 +114,7 @@ def create_schema(new_schema_name, conn_string):
     else:
         print(f'Schema {new_schema_name} already exists...')
 
-def drop_schema(schema_name, conn_string):
+def drop_schema(schema_name, conn_string) -> None:
     """
     Drops an existing schema on the postgres server
     """
@@ -136,7 +140,7 @@ def drop_schema(schema_name, conn_string):
             print(f'Schema {schema_name} has been dropped')
         conn.close()
 
-def create_table(schema_name, new_table_name, conn_string):
+def create_table(schema_name, new_table_name, conn_string) -> None:
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     is_exist = f"""SELECT table_name
@@ -167,7 +171,7 @@ def create_table(schema_name, new_table_name, conn_string):
         print(f'Table {schema_name}.{new_table_name} already exists...')
     conn.close()
 
-def drop_table(schema_name, table_name, conn_string):
+def drop_table(schema_name, table_name, conn_string) -> None:
     """
     Drops an existing table on the postgres server
     """
@@ -199,9 +203,33 @@ def drop_table(schema_name, table_name, conn_string):
             print(f'Table {schema_name}.{table_name} has been dropped')
         conn.close()
 
+def table_exists(schema_name, table_name, conn_string):
+    is_exist = f"""SELECT table_name
+    FROM
+        information_schema.tables
+    WHERE
+        table_name = '{table_name}'
+    AND
+        table_schema = '{schema_name}';"""
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
+    curs = conn.cursor()
+    # verify it does not exist
+    curs.execute(is_exist)
+    exist_result = curs.fetchall()
+    if not exist_result:
+        print(f'Table {schema_name}.{table_name} does not exist')
+    elif exist_result:
+        print(f'Verified that table {schema_name}.{table_name} exists')
+    conn.close()
+
 if __name__ == '__main__':
-    conn = conn_string('app/server_params.json')
-    create_schema('test_schema', conn)
+    db = 'test_db'
+    schema = 'test_schema'
+    table = 'test_table'
+    conn = conn_string()
+    create_schema(schema, conn)
     #drop_schema('test_schema', conn)
-    create_table('test_schema','test_table', conn)
-    drop_table('test_schema', 'test_table', conn)
+    create_table(schema,table, conn)
+    #drop_table('test_schema', 'test_table', conn)
+    verify_table_loaded(schema, table, conn)
