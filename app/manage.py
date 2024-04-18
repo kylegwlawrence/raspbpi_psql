@@ -3,6 +3,7 @@
 
 import psycopg2
 import json
+from apperror import AppLogger, AppStatus, AppError
 
 def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
     """
@@ -16,18 +17,34 @@ def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
             connection_string (str): the connection string to pass to the cursor
     """
     # read in json
-    with open(json_file) as f:
-        params = json.load(f)
+    try:
+        with open(json_file) as f:
+            params = json.load(f)
+    except:
+        with open(json_file.replace('app/','')) as f:
+            params = json.load(f)
     if psycopg2:
         connection_string = f"""host='{params["host"]}' port='{params["port"]}' dbname='{params["db"]}' user='{params["user"]}' password='{params["pw"]}'"""
     else:
         connection_string = f"postgresql://{params['user']}:{params['pw']}@{params['host']}:{params['port']}/{params['db']}"
     return connection_string
 
+def test_connection(test:bool=True, **kwargs):
+    connection_string = conn_string(**kwargs)
+    if test:
+        try:
+            conn = psycopg2.connect(connection_string)
+            print('Connection successful')
+            conn.close()
+        except AppError as error:
+            AppLogger.error(error)
+            raise
+
 def create_db(new_db_name, conn_string) -> None:
     """
     Creates a new database on the postgres server
     """
+    test_connection()
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     curs = conn.cursor()
@@ -56,11 +73,13 @@ def create_db(new_db_name, conn_string) -> None:
         conn.close()
     else:
         print(f'Database {new_db_name} already exists...')
+        conn.close()
 
 def drop_db(db_name, conn_string) -> None:
     """
     Drops an existing database on the postgres server
     """
+    test_connection()
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     # sql to check if the db already exists
@@ -71,6 +90,7 @@ def drop_db(db_name, conn_string) -> None:
             exist_result = curs.fetchall()
     if not exist_result:
         print(f'Database {db_name} cannot be droppped, it does not exist...')
+        conn.close()
     else:
         sql_drop = f"DROP database {db_name};"
         curs = conn.cursor()
@@ -84,7 +104,10 @@ def drop_db(db_name, conn_string) -> None:
         conn.close()
 
 def create_schema(new_schema_name, conn_string) -> None:
-
+    """
+    Creates a new schema in the database defined in the connection string
+    """
+    test_connection()
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     curs = conn.cursor()
@@ -113,11 +136,13 @@ def create_schema(new_schema_name, conn_string) -> None:
         conn.close()
     else:
         print(f'Schema {new_schema_name} already exists...')
+        conn.close()
 
 def drop_schema(schema_name, conn_string) -> None:
     """
     Drops an existing schema on the postgres server
     """
+    test_connection()
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     # sql to check if the schema already exists
@@ -128,6 +153,7 @@ def drop_schema(schema_name, conn_string) -> None:
             exist_result = curs.fetchall()
     if not exist_result:
         print(f'Schema {schema_name} cannot be droppped, it does not exist...')
+        conn.close()
     else:
         sql_drop = f"DROP SCHEMA {schema_name};"
         curs = conn.cursor()
@@ -227,9 +253,10 @@ if __name__ == '__main__':
     db = 'test_db'
     schema = 'test_schema'
     table = 'test_table'
-    conn = conn_string()
-    create_schema(schema, conn)
+    #conn = conn_string()
+    #create_schema(schema, conn)
     #drop_schema('test_schema', conn)
-    create_table(schema,table, conn)
+    #create_table(schema,table, conn)
     #drop_table('test_schema', 'test_table', conn)
-    verify_table_loaded(schema, table, conn)
+    #table_exists(schema, table, conn)
+    test_connection()

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 import manage
 import pandas as pd
 
@@ -27,7 +27,6 @@ manage.table_exists(schema_name, table_name, psycopg2_conn)
 
 df_v = pd.read_sql_table(table_name, sqlalchemy_conn, schema_name)
 print(df_v)
-
 
 # on cluster use localhost and port 32345
 # open the port from docker container to local system - maybe?
