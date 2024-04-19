@@ -51,7 +51,7 @@ def create_db(new_db_name, conn_string) -> None:
     """
     Creates a new database on the postgres server
     """
-    test_connection()
+    test_connection(db_type="setup_db")
 
     # sql to check if the db already exists
     is_exist = f"SELECT datname FROM pg_database WHERE datistemplate = false and datname='{new_db_name}'"
@@ -81,7 +81,7 @@ def drop_db(db_name, conn_string) -> None:
     """
     Drops an existing database on the postgres server
     """
-    test_connection()
+    test_connection(db_type="setup_db")
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     # sql to check if the db already exists
@@ -108,7 +108,7 @@ def create_schema(new_schema_name, conn_string) -> None:
     """
     Creates a new schema in the database defined in the connection string
     """
-    test_connection()
+    test_connection(db_type="dev_db")
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     # sql to check if the schema already exists
@@ -138,7 +138,7 @@ def drop_schema(schema_name, conn_string) -> None:
     """
     Drops an existing schema on the postgres server
     """
-    test_connection()
+    test_connection(db_type="dev_db")
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     # sql to check if the schema already exists
@@ -162,6 +162,7 @@ def drop_schema(schema_name, conn_string) -> None:
     conn.close()
 
 def create_table(schema_name, new_table_name, conn_string) -> None:
+    test_connection(db_type="dev_db")
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     is_exist = f"""SELECT table_name
@@ -193,6 +194,7 @@ def drop_table(schema_name, table_name, conn_string) -> None:
     """
     Drops an existing table on the postgres server
     """
+    test_connection(db_type="dev_db")
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
     # sql to check if the schema already exists
@@ -221,6 +223,7 @@ def drop_table(schema_name, table_name, conn_string) -> None:
     conn.close()
 
 def table_exists(schema_name, table_name, conn_string):
+    test_connection(db_type="dev_db")
     is_exist = f"""SELECT table_name
     FROM
         information_schema.tables
