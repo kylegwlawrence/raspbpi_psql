@@ -3,7 +3,7 @@
 
 import psycopg2
 import json
-from apperror import AppLogger, AppStatus, AppError
+from apperror import AppLogger, AppError
 
 def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
     """
@@ -29,12 +29,14 @@ def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
         connection_string = f"postgresql://{params['user']}:{params['pw']}@{params['host']}:{params['port']}/{params['db']}"
     return connection_string
 
-def test_connection(test:bool=True, **kwargs):
+def test_connection(test:bool=True, **kwargs) -> None:
+    """
+    Test that we can connect to postgres with psycopg2
+    """
     connection_string = conn_string(**kwargs)
     if test:
         try:
             conn = psycopg2.connect(connection_string)
-            print('Connection successful')
             conn.close()
         except AppError as error:
             AppLogger.error(error)
@@ -45,11 +47,11 @@ def create_db(new_db_name, conn_string) -> None:
     Creates a new database on the postgres server
     """
     test_connection()
-    conn = psycopg2.connect(conn_string)
-    conn.autocommit = True
-    curs = conn.cursor()
+
     # sql to check if the db already exists
     is_exist = f"SELECT datname FROM pg_database WHERE datistemplate = false and datname='{new_db_name}'"
+    conn = psycopg2.connect(conn_string)
+    conn.autocommit = True
     with conn:
         with conn.cursor() as curs:
             curs.execute(is_exist)
@@ -57,13 +59,9 @@ def create_db(new_db_name, conn_string) -> None:
     if not exist_result:
         # create the database
         print(f'{new_db_name} does not exist, creating it...')
-        # sql to create the db
         sql = f"CREATE DATABASE {new_db_name};"
-        conn = psycopg2.connect(conn_string)
-        conn.autocommit = True
         curs = conn.cursor()
         curs.execute(sql)
-        conn.commit()
 
         # verify it exists
         curs.execute(is_exist)
@@ -110,7 +108,6 @@ def create_schema(new_schema_name, conn_string) -> None:
     test_connection()
     conn = psycopg2.connect(conn_string)
     conn.autocommit = True
-    curs = conn.cursor()
     # sql to check if the schema already exists
     is_exist = f"SELECT nspname FROM pg_catalog.pg_namespace WHERE LOWER(nspname) = LOWER('{new_schema_name}')"
     with conn:
@@ -122,11 +119,8 @@ def create_schema(new_schema_name, conn_string) -> None:
         print(f'{new_schema_name} does not exist, creating it...')
         # sql to create the schema
         sql = f"CREATE SCHEMA {new_schema_name};"
-        conn = psycopg2.connect(conn_string)
-        conn.autocommit = True
         curs = conn.cursor()
         curs.execute(sql)
-        conn.commit()
 
         # verify it exists
         curs.execute(is_exist)
@@ -153,7 +147,6 @@ def drop_schema(schema_name, conn_string) -> None:
             exist_result = curs.fetchall()
     if not exist_result:
         print(f'Schema {schema_name} cannot be droppped, it does not exist...')
-        conn.close()
     else:
         sql_drop = f"DROP SCHEMA {schema_name};"
         curs = conn.cursor()
@@ -164,7 +157,7 @@ def drop_schema(schema_name, conn_string) -> None:
         exist_result = curs.fetchall()
         if not exist_result:
             print(f'Schema {schema_name} has been dropped')
-        conn.close()
+    conn.close()
 
 def create_table(schema_name, new_table_name, conn_string) -> None:
     conn = psycopg2.connect(conn_string)
@@ -183,11 +176,8 @@ def create_table(schema_name, new_table_name, conn_string) -> None:
     if not exist_result:
         # sql to create the table
         sql = f"CREATE TABLE IF NOT EXISTS {schema_name}.{new_table_name} ();"
-        conn = psycopg2.connect(conn_string)
-        conn.autocommit = True
         curs = conn.cursor()
         curs.execute(sql)
-        conn.commit()
         # verify it exists
         curs.execute(is_exist)
         exist_result = curs.fetchall()
@@ -221,13 +211,12 @@ def drop_table(schema_name, table_name, conn_string) -> None:
         sql_drop = f"DROP TABLE {schema_name}.{table_name} CASCADE;"
         curs = conn.cursor()
         curs.execute(sql_drop)
-        conn.commit()
         # verify it does not exist
         curs.execute(is_exist)
         exist_result = curs.fetchall()
         if not exist_result:
             print(f'Table {schema_name}.{table_name} has been dropped')
-        conn.close()
+    conn.close()
 
 def table_exists(schema_name, table_name, conn_string):
     is_exist = f"""SELECT table_name
@@ -250,13 +239,13 @@ def table_exists(schema_name, table_name, conn_string):
     conn.close()
 
 if __name__ == '__main__':
-    db = 'test_db'
     schema = 'test_schema'
     table = 'test_table'
+    create_db('test_db', conn_string())
+    drop_db('test_db', conn_string())
     #conn = conn_string()
     #create_schema(schema, conn)
     #drop_schema('test_schema', conn)
     #create_table(schema,table, conn)
     #drop_table('test_schema', 'test_table', conn)
     #table_exists(schema, table, conn)
-    test_connection()
