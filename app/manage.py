@@ -5,7 +5,7 @@ import psycopg2
 import json
 from apperror import AppLogger, AppError
 
-def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
+def conn_string(db_type, json_file='app/server_params.json', psycopg2=True) -> str:
     """
     Connects to the raspberrypi3.local postgres server
 
@@ -16,6 +16,7 @@ def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
         Returns:
             connection_string (str): the connection string to pass to the cursor
     """
+    accepted_db_type = ['setup','dev','prod']
     # read in json
     try:
         with open(json_file) as f:
@@ -23,6 +24,12 @@ def conn_string(json_file='app/server_params.json', psycopg2=True) -> str:
     except:
         with open(json_file.replace('app/','')) as f:
             params = json.load(f)
+    if db_type=='setup':
+        params["db"] = params["setup_db"]
+    elif db_type=='dev':
+        params["db"] = params["dev_db"]
+    else:
+        raise ValueError(f"db_type must be one of {', '.join(accepted_db_type)}")
     if psycopg2:
         connection_string = f"""host='{params["host"]}' port='{params["port"]}' dbname='{params["db"]}' user='{params["user"]}' password='{params["pw"]}'"""
     else:
@@ -238,8 +245,8 @@ def table_exists(schema_name, table_name, conn_string):
 if __name__ == '__main__':
     schema = 'test_schema'
     table = 'test_table'
-    create_db('test_db', conn_string())
-    drop_db('test_db', conn_string())
+    create_db('test_db', conn_string('set'))
+    drop_db('test_db', conn_string('set'))
     #conn = conn_string()
     #create_schema(schema, conn)
     #drop_schema('test_schema', conn)
