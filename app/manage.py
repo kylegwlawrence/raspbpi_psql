@@ -16,7 +16,7 @@ def conn_string(db_type, json_file='app/server_params.json', psycopg2=True) -> s
         Returns:
             connection_string (str): the connection string to pass to the cursor
     """
-    accepted_db_type = ['setup','dev','prod']
+    accepted_db_type = ['setup_db','dev_db','prod_db']
     # read in json
     try:
         with open(json_file) as f:
@@ -24,11 +24,9 @@ def conn_string(db_type, json_file='app/server_params.json', psycopg2=True) -> s
     except:
         with open(json_file.replace('app/','')) as f:
             params = json.load(f)
-    if db_type=='setup':
-        params["db"] = params["setup_db"]
-    elif db_type=='dev':
-        params["db"] = params["dev_db"]
-    else:
+    try:
+        params["db"] = params[db_type]
+    except:
         raise ValueError(f"db_type must be one of {', '.join(accepted_db_type)}")
     if psycopg2:
         connection_string = f"""host='{params["host"]}' port='{params["port"]}' dbname='{params["db"]}' user='{params["user"]}' password='{params["pw"]}'"""
