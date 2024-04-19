@@ -68,10 +68,9 @@ def create_db(new_db_name, conn_string) -> None:
         exist_result = curs.fetchall()
         if exist_result[0][0]==new_db_name:
             print(f'Database {new_db_name} has been created')
-        conn.close()
     else:
         print(f'Database {new_db_name} already exists...')
-        conn.close()
+    conn.close()
 
 def drop_db(db_name, conn_string) -> None:
     """
@@ -88,7 +87,6 @@ def drop_db(db_name, conn_string) -> None:
             exist_result = curs.fetchall()
     if not exist_result:
         print(f'Database {db_name} cannot be droppped, it does not exist...')
-        conn.close()
     else:
         sql_drop = f"DROP database {db_name};"
         curs = conn.cursor()
@@ -99,7 +97,7 @@ def drop_db(db_name, conn_string) -> None:
         exist_result = curs.fetchall()
         if not exist_result:
             print(f'Database {db_name} has been dropped')
-        conn.close()
+    conn.close()
 
 def create_schema(new_schema_name, conn_string) -> None:
     """
@@ -127,10 +125,9 @@ def create_schema(new_schema_name, conn_string) -> None:
         exist_result = curs.fetchall()
         if exist_result[0][0]==new_schema_name:
             print(f'Schema {new_schema_name} has been created')
-        conn.close()
     else:
         print(f'Schema {new_schema_name} already exists...')
-        conn.close()
+    conn.close()
 
 def drop_schema(schema_name, conn_string) -> None:
     """
