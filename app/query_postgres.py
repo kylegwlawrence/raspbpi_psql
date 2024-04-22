@@ -32,13 +32,15 @@ def select_query(args):
     port = params["port"]
     database = params["dev_db"]
     engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{database}')
-
+    
     df = pd.read_sql(sql, con=engine)
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_columns", None)
     print(df)
     return df
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description='Query postgres and return a dataframe. Optionally print n rows. Wrap the sql statement in double quotes')
+    parser = argparse.ArgumentParser(description='Query postgres and return a dataframe. Wrap a sql statement in double quotes.')
     parser.add_argument('--pw', required=True, help='password for postgres')
     parser.add_argument('--sql', required=True, help='select statement or file path to a sql file containing a select statement')
 
