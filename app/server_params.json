@@ -1,0 +1,8 @@
+{
+    "user": "postgres",
+    "setup_db": "postgres",
+    "dev_db": "stocks_dev",
+    "prod_db": "stocks_prod",
+    "host": "raspberrypi3.local",
+    "port": "32345"
+}
